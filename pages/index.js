@@ -1,6 +1,31 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import styles from '../styles/Home.module.css';
+import connectDB from '../lib/mongodb';
+import User from '../models/User';
+
+const handleModalSubmit = async ({ email, password }) => {
+  try {
+    // Crea una nueva instancia de User
+    const newUser = new User({
+      email,
+      password,
+    });
+
+    // Guarda el usuario en la base de datos
+    await newUser.save();
+
+    console.log('Usuario registrado:', newUser);
+    
+    // Cierra el modal después de registrar al usuario
+    setShowModal(false);
+  } catch (error) {
+    console.error('Error al registrar usuario:', error.message);
+  }
+};
+
+
+connectDB();
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
