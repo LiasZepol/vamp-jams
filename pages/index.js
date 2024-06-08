@@ -91,14 +91,19 @@ export default function Home() {
       </Head>
 
       <nav className={styles.navbar}>
-        {!isAuthenticated ? (
-          <>
-            <button onClick={() => { setShowLogin(true); setShowRegister(false); }}>Inicio de sesión</button>
-            <button onClick={() => { setShowLogin(false); setShowRegister(true); }}>Registrar</button>
-          </>
-        ) : (
-          <button onClick={handleLogout}>Cerrar sesión</button>
-        )}
+        <div className={styles.navContent}>
+          <img src="/images/vampjams.jpeg" alt="Vamp Jams Logo" className={styles.logo} />
+          <div className={styles.navButtons}>
+            {!isAuthenticated ? (
+              <>
+                <button onClick={() => { setShowLogin(true); setShowRegister(false); }}>Inicio de sesión</button>
+                <button onClick={() => { setShowLogin(false); setShowRegister(true); }}>Registrar</button>
+              </>
+            ) : (
+              <button onClick={handleLogout}>Cerrar sesión</button>
+            )}
+          </div>
+        </div>
       </nav>
 
       <main className={styles.main}>
@@ -155,7 +160,7 @@ export default function Home() {
         {/* Show Guitar Fretboard only if authenticated */}
         {isAuthenticated ? (
           <div className={styles.container}>
-            <h1 className={styles.title}>Diapasón de Guitarra</h1>
+            <h1 className={styles.title}>Selecciona tus notas</h1>
             <GuitarFretboard />
           </div>
         ) : (

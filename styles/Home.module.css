@@ -1,5 +1,5 @@
 .container {
-    min-height: 100vh;
+    min-height: 100%;
     padding: 0 0.5rem;
     display: flex;
     flex-direction: column;
@@ -9,15 +9,37 @@
   
   .navbar {
     width: 100%;
-    padding: 1rem;
+    padding: .5rem;
     background-color: #0070f3;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
   }
   
-  .navbar button {
-    margin-left: 1rem;
+  .navContent {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .logoContainer {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .logo {
+    width: 100px;
+    height: auto;
+  }
+  
+  .navButtons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .navButtons button {
     padding: 0.75rem 1.5rem;
     background-color: white;
     color: #0070f3;
@@ -26,10 +48,11 @@
     cursor: pointer;
   }
   
-  .navbar button:hover {
+  .navButtons button:hover {
     background-color: #005bb5;
     color: white;
   }
+  
   
   .main {
     padding: 5rem 0;
@@ -41,9 +64,10 @@
   }
   
   .title {
-    margin: 0;
+    margin: 10px;
+    margin-top: 50px;
     line-height: 1.15;
-    font-size: 1rem;
+    font-size: 1.2rem;
   }
   
   .form {
