@@ -1,0 +1,80 @@
+.fretboard {
+  width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #d4a373; /* Color madera */
+    border: 2px solid #8b5e3c; /* Borde marrón oscuro */
+    padding: 10px;
+    border-radius: 10px;
+  }
+  
+  .string {
+    display: flex;
+    width: 100%;
+    margin: 2px 0;
+    position: relative;
+  }
+  
+  .fret {
+    flex: 1;
+    height: 30px;
+    border-right: 1px solid #8b5e3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .fret:last-child {
+    border-right: none;
+  }
+  
+  .fret.selected::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 15px;
+    height: 15px;
+    background-color: yellow;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .selectedNotes {
+    margin-top: 20px;
+  }
+  
+  .fret::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #000;
+  }
+  
+  .string::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 4px;
+    background-color: #000;
+  }
+  
+  .string:nth-child(1)::before {
+    height: 2px; /* Grosor de la cuerda E baja */
+  }
+  
+  .string:nth-child(6)::before {
+    height: 6px; /* Grosor de la cuerda e alta */
+  }
+  
+  
+  

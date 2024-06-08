@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import styles from '../styles/Home.module.css';
-import diapasonStyles from '../styles/Diapason.module.css';
+import GuitarFretboard from '../components/GuitarFretboard';
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -12,9 +12,9 @@ export default function Home() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [selectedNotes, setSelectedNotes] = useState([]);
 
   useEffect(() => {
+    // Check if the user is already authenticated by looking for the token in localStorage
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
@@ -82,23 +82,6 @@ export default function Home() {
     localStorage.removeItem('token');
   };
 
-  const handleNoteClick = (note) => {
-    setSelectedNotes((prevNotes) => {
-      if (prevNotes.includes(note)) {
-        return prevNotes.filter((n) => n !== note);
-      }
-      return [...prevNotes, note];
-    });
-  };
-
-  const getChord = () => {
-    // Implementa la lógica para determinar el acorde basado en las notas seleccionadas
-    if (selectedNotes.length === 0) {
-      return 'Seleccione notas en el diapasón';
-    }
-    return `Acorde: ${selectedNotes.join(', ')}`; // Simple placeholder
-  };
-
   return (
     <div className={styles.container}>
       <Head>
@@ -119,7 +102,6 @@ export default function Home() {
       </nav>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>Vamp Jams</h1>
 
         {showLogin && !isAuthenticated && (
           <form onSubmit={handleLogin} className={styles.form}>
@@ -164,49 +146,25 @@ export default function Home() {
             <h2>Bienvenido, {username}!</h2>
           </div>
         )}
-
+        
         {registrationSuccess && (
           <div>
             <h2>Registro exitoso! Ahora puedes iniciar sesión.</h2>
           </div>
         )}
+            <div className={styles.container}>
+      <Head>
+        <title>Diapasón de Guitarra</title>
+        <meta name="description" content="Diapasón de guitarra interactivo" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
 
-        <div className={diapasonStyles.diapasonContainer}>
-          <div className={diapasonStyles.diapason}>
-            <div className={diapasonStyles.cuerda} onClick={() => handleNoteClick('E')}>
-              <div className={diapasonStyles.traste} style={{ left: '10%' }}></div>
-              <div className={diapasonStyles.traste} style={{ left: '30%' }}></div>
-              <div className={diapasonStyles.traste} style={{ left: '50%' }}></div>
-              <div className={diapasonStyles.traste} style={{ left: '70%' }}></div>
-              <div className={diapasonStyles.traste} style={{ left: '90%' }}></div>
-              <div className={diapasonStyles.puntoGuia} style={{ left: '10%', top: '10%' }} onClick={() => handleNoteClick('E')}></div>
-              <div className={diapasonStyles.puntoGuia} style={{ left: '30%', top: '10%' }} onClick={() => handleNoteClick('A')}></div>
-              <div className={diapasonStyles.puntoGuia} style={{ left: '50%', top: '10%' }} onClick={() => handleNoteClick('D')}></div>
-              <div className={diapasonStyles.puntoGuia} style={{ left: '70%', top: '10%' }} onClick={() => handleNoteClick('G')}></div>
-              <div className={diapasonStyles.puntoGuia} style={{ left: '90%', top: '10%' }} onClick={() => handleNoteClick('B')}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.chordInfo}>
-          <h2>{getChord()}</h2>
-          <div className={styles.selectedNotes}>
-            {selectedNotes.map((note, index) => (
-              <span key={index} className={styles.note}>
-                {note}
-              </span>
-            ))}
-          </div>
-        </div>
+      <main className={styles.main}>
+        <h1 className={styles.title}>Diapasón de Guitarra</h1>
+        <GuitarFretboard />
+      </main>
+    </div>
       </main>
     </div>
   );
 }
-
-
-
-
-
-
-
-
