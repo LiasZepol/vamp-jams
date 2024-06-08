@@ -102,7 +102,6 @@ export default function Home() {
       </nav>
 
       <main className={styles.main}>
-
         {showLogin && !isAuthenticated && (
           <form onSubmit={handleLogin} className={styles.form}>
             <h3>Iniciar sesión</h3>
@@ -152,18 +151,18 @@ export default function Home() {
             <h2>Registro exitoso! Ahora puedes iniciar sesión.</h2>
           </div>
         )}
-            <div className={styles.container}>
-      <Head>
-        <title>Diapasón de Guitarra</title>
-        <meta name="description" content="Diapasón de guitarra interactivo" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>Diapasón de Guitarra</h1>
-        <GuitarFretboard />
-      </main>
-    </div>
+        {/* Show Guitar Fretboard only if authenticated */}
+        {isAuthenticated ? (
+          <div className={styles.container}>
+            <h1 className={styles.title}>Diapasón de Guitarra</h1>
+            <GuitarFretboard />
+          </div>
+        ) : (
+          <div className={styles.restrictedAccess}>
+            <h2>Por favor, inicie sesión para acceder al diapasón de guitarra.</h2>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -43,7 +43,7 @@
   .title {
     margin: 0;
     line-height: 1.15;
-    font-size: 4rem;
+    font-size: 1rem;
   }
   
   .form {
@@ -78,5 +78,12 @@
   .form button:hover {
     background-color: #005bb5;
   }
+
+  .restrictedAccess {
+    text-align: center;
+    margin-top: 20px;
+    color: red;
+  }
+  
   
   
