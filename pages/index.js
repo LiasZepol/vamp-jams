@@ -1,7 +1,7 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from '../styles/Home.module.css';
-import GuitarFretboard from '../components/GuitarFretboard';
+import Pitchfinder from 'pitchfinder';
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -12,6 +12,10 @@ export default function Home() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [currentChord, setCurrentChord] = useState('');
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const pitchDetectorRef = useRef(null);
 
   useEffect(() => {
     // Check if the user is already authenticated by looking for the token in localStorage
@@ -20,6 +24,66 @@ export default function Home() {
       setIsAuthenticated(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      startAudioDetection();
+    }
+    return () => {
+      stopAudioDetection();
+    };
+  }, [isAuthenticated]);
+
+  const startAudioDetection = async () => {
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    analyserRef.current = audioContextRef.current.createAnalyser();
+    pitchDetectorRef.current = Pitchfinder.AMDF();
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+      detectPitch();
+    } catch (err) {
+      console.error('Error accessing audio stream:', err);
+    }
+  };
+
+  const stopAudioDetection = () => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+  };
+
+  const detectPitch = () => {
+    const bufferLength = analyserRef.current.fftSize;
+    const buffer = new Float32Array(bufferLength);
+
+    const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    const getNote = (frequency) => {
+      const A4 = 440;
+      const semitone = 69;
+      const noteNumber = 12 * (Math.log(frequency / A4) / Math.log(2));
+      return Math.round(noteNumber) + semitone;
+    };
+
+    const frequencyToNote = (frequency) => {
+      const note = getNote(frequency);
+      return noteStrings[note % 12];
+    };
+
+    const detect = () => {
+      analyserRef.current.getFloatTimeDomainData(buffer);
+      const pitch = pitchDetectorRef.current(buffer);
+      if (pitch) {
+        const note = frequencyToNote(pitch);
+        setCurrentChord(note);
+      }
+      requestAnimationFrame(detect);
+    };
+    detect();
+  };
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -83,24 +147,39 @@ export default function Home() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className="bg-red-900 md:bg-pink-900">
       <Head>
         <title>Vamp Jams</title>
         <meta name="description" content="Página de inicio de sesión y registro" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <nav className={styles.navbar}>
-        <div className={styles.navContent}>
-          <img src="/images/vampjams.jpeg" alt="Vamp Jams Logo" className={styles.logo} />
-          <div className={styles.navButtons}>
+      <nav className="bg-gradient-to-r from-purple-100 via-purple-500 to-purple-600 p-4">
+        <div className="container mx-auto flex justify-between items-center">
+          <img src="/images/vampjams.jpeg" alt="Vamp Jams Logo" className="h-10" />
+          <div>
             {!isAuthenticated ? (
               <>
-                <button onClick={() => { setShowLogin(true); setShowRegister(false); }}>Inicio de sesión</button>
-                <button onClick={() => { setShowLogin(false); setShowRegister(true); }}>Registrar</button>
+                <button 
+                  className="bg-blue-500 text-white px-4 py-2 rounded mr-2 hover:bg-blue-700"
+                  onClick={() => { setShowLogin(true); setShowRegister(false); }}
+                >
+                  Inicio de sesión
+                </button>
+                <button 
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  onClick={() => { setShowLogin(false); setShowRegister(true); }}
+                >
+                  Registrar
+                </button>
               </>
             ) : (
-              <button onClick={handleLogout}>Cerrar sesión</button>
+              <button 
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
+                onClick={handleLogout}
+              >
+                Cerrar sesión
+              </button>
             )}
           </div>
         </div>
@@ -160,8 +239,9 @@ export default function Home() {
         {/* Show Guitar Fretboard only if authenticated */}
         {isAuthenticated ? (
           <div className={styles.container}>
-            <h1 className={styles.title}>Selecciona tus notas</h1>
-            <GuitarFretboard />
+            <h1 className="text-7xl font-mono text-green-500">
+              {currentChord}
+            </h1>
           </div>
         ) : (
           <div className={styles.restrictedAccess}>
