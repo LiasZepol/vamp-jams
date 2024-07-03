@@ -19,7 +19,66 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [detectedNotes, setDetectedNotes] = useState([]);
   const [lastDetectedNote, setLastDetectedNote] = useState(null);
-  const [noteDurations, setNoteDurations] = useState({});
+
+  const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  const generateChordStructure = (rootNote, intervals) => {
+    const rootIndex = noteStrings.indexOf(rootNote);
+    if (Array.isArray(intervals[0])) {
+      // Handle array of arrays
+      return intervals.map(intervalSet => intervalSet.map(interval => noteStrings[(rootIndex + interval) % 12]));
+    }
+    return intervals.map(interval => noteStrings[(rootIndex + interval) % 12]);
+  };
+
+  const majorChordIntervals = [[0, 4, 7],[0, 4]]; // Root, Major Third, Perfect Fifth
+  const minorChordIntervals = [[0, 3, 7],[0, 3]]; // Root, Minor Third, Perfect Fifth
+  const augmentedChordIntervals = [0, 4, 8];
+  const diminishChordIntervals = [0, 3, 6];
+  const majorsevenChordIntervals = [[0, 4, 7, 11], [0, 4, 11]]; // Root, Major Third, Perfect Fifth, Major Seventh or Minor Seventh
+  const dominantsevenChordIntervals = [[0, 4, 7, 10], [0, 4, 10]]; // Root, Major Third, Perfect Fifth, Minor Seventh
+  const minorsevenChordIntervals = [[0, 3, 7, 10], [0, 3, 10]];
+  const halfdiminishChordIntervals = [0, 3, 6, 10]
+  const diminishsevenChordIntervals = [0, 3, 6, 9]
+  const augmentedmajorChordIntervals = [0, 4, 8, 11]
+
+
+  const chordStructures = noteStrings.reduce((acc, note) => {
+    acc[note + ''] = generateChordStructure(note, majorChordIntervals);
+    acc[note + 'm'] = generateChordStructure(note, minorChordIntervals);
+    acc[note + '+'] = generateChordStructure(note, augmentedChordIntervals);
+    acc[note + 'o'] = generateChordStructure(note, diminishChordIntervals);
+    acc[note + '∆'] = generateChordStructure(note, majorsevenChordIntervals);
+    acc[note + '7'] = generateChordStructure(note, dominantsevenChordIntervals);
+    acc[note + 'm7'] = generateChordStructure(note, minorsevenChordIntervals);
+    acc[note + 'ø'] = generateChordStructure(note, halfdiminishChordIntervals);
+    acc[note + 'o7'] = generateChordStructure(note, diminishsevenChordIntervals);
+    acc[note + '∆+'] = generateChordStructure(note, augmentedmajorChordIntervals);
+
+    
+    return acc;
+  }, {});
+
+  const detectChord = (notes) => {
+    const uniqueNotes = [...new Set(notes)]; // Remove duplicates
+    for (const [chord, structures] of Object.entries(chordStructures)) {
+      if (Array.isArray(structures[0])) {
+        // Handle array of arrays
+        for (const structure of structures) {
+          if (structure.every(note => uniqueNotes.includes(note)) && structure.length === uniqueNotes.length) {
+            return chord;
+          }
+        }
+      } else {
+        if (structures.every(note => uniqueNotes.includes(note)) && structures.length === uniqueNotes.length) {
+          return chord;
+        }
+      }
+    }
+    return 'No se detectó acorde';
+  };
+
+  const detectedChord = detectChord(detectedNotes);
 
   useEffect(() => {
     // Check if the user is already authenticated by looking for the token in localStorage
@@ -67,8 +126,6 @@ export default function Home() {
     const bufferLength = analyserRef.current.fftSize;
     const buffer = new Float32Array(bufferLength);
 
-    const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
     const getNote = (frequency) => {
       const A4 = 440;
       const semitone = 69;
@@ -81,42 +138,19 @@ export default function Home() {
       return noteStrings[note % 12];
     };
 
-    const lowPassFilter = (buffer) => {
-      const alpha = 0.02; // More aggressive smoothing factor
-      let previousValue = buffer[0];
-      for (let i = 1; i < buffer.length; i++) {
-        buffer[i] = alpha * buffer[i] + (1 - alpha) * previousValue;
-        previousValue = buffer[i];
-      }
-    };
-
     const detect = () => {
       analyserRef.current.getFloatTimeDomainData(buffer);
-      lowPassFilter(buffer); // Apply low-pass filter
       const pitch = pitchDetectorRef.current(buffer);
-      if (pitch && pitch > 100) { // Adjust the threshold to filter out low frequencies
+      if (pitch && pitch > 150) { // Adjusted threshold to filter out low frequencies
         const note = frequencyToNote(pitch);
-        const now = Date.now();
 
-        setNoteDurations((prevDurations) => {
-          const newDurations = { ...prevDurations };
-          if (!newDurations[note]) {
-            newDurations[note] = { start: now, duration: 0 };
-          } else {
-            newDurations[note].duration = now - newDurations[note].start;
+        setDetectedNotes((prevNotes) => {
+          if (prevNotes.length < 4 && (prevNotes.length === 0 || note !== prevNotes[prevNotes.length - 1])) {
+            setLastDetectedNote(note);
+            console.log(`Detected Notes: ${[...prevNotes, note]}`);
+            return [...prevNotes, note];
           }
-
-          if (newDurations[note].duration >= 2000) { // Note duration is more than 2 seconds
-            setDetectedNotes((prevNotes) => {
-              if (prevNotes.length < 4 && (prevNotes.length === 0 || note !== prevNotes[prevNotes.length - 1])) {
-                setLastDetectedNote(note);
-                return [...prevNotes, note];
-              }
-              return prevNotes;
-            });
-          }
-
-          return newDurations;
+          return prevNotes;
         });
       }
       requestAnimationFrame(detect);
@@ -279,7 +313,12 @@ export default function Home() {
         {isAuthenticated ? (
           <div className={`${styles.container} bg-gray-800 p-6 rounded-lg shadow-lg border-4 border-gray-700`}>
             <h1 className="text-3xl font-bold text-green-400"> {currentChord}</h1>
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex flex-col items-center">
+              {lastDetectedNote && (
+                <h2 className="text-xl text-white mb-4 p-2 bg-gray-700 rounded-lg shadow-md">
+                  {lastDetectedNote}
+                </h2>
+              )}
               <button 
                 className={`bg-${isListening ? 'red' : 'blue'}-500 text-white px-4 py-2 rounded hover:bg-${isListening ? 'red' : 'blue'}-700`}
                 onClick={isListening ? stopAudioDetection : startAudioDetection}
@@ -295,6 +334,10 @@ export default function Home() {
                 ))}
               </ul>
             </div>
+            <div className="mt-4">
+              <h2 className="text-xl text-white">Acorde detectado:</h2>
+              <p className="text-white">{detectedChord}</p>
+            </div>
           </div>
         ) : (
           <div className={styles.restrictedAccess}>
@@ -305,3 +348,4 @@ export default function Home() {
     </div>
   );
 }
+
