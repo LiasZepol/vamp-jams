@@ -16,6 +16,10 @@ export default function Home() {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const pitchDetectorRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const [detectedNotes, setDetectedNotes] = useState([]);
+  const [lastDetectedNote, setLastDetectedNote] = useState(null);
+  const [noteDurations, setNoteDurations] = useState({});
 
   useEffect(() => {
     // Check if the user is already authenticated by looking for the token in localStorage
@@ -44,6 +48,9 @@ export default function Home() {
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
       detectPitch();
+      setIsListening(true);
+      setDetectedNotes([]); // Reset detected notes when starting detection
+      setLastDetectedNote(null); // Reset last detected note
     } catch (err) {
       console.error('Error accessing audio stream:', err);
     }
@@ -53,6 +60,7 @@ export default function Home() {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
+    setIsListening(false);
   };
 
   const detectPitch = () => {
@@ -73,12 +81,43 @@ export default function Home() {
       return noteStrings[note % 12];
     };
 
+    const lowPassFilter = (buffer) => {
+      const alpha = 0.02; // More aggressive smoothing factor
+      let previousValue = buffer[0];
+      for (let i = 1; i < buffer.length; i++) {
+        buffer[i] = alpha * buffer[i] + (1 - alpha) * previousValue;
+        previousValue = buffer[i];
+      }
+    };
+
     const detect = () => {
       analyserRef.current.getFloatTimeDomainData(buffer);
+      lowPassFilter(buffer); // Apply low-pass filter
       const pitch = pitchDetectorRef.current(buffer);
-      if (pitch) {
+      if (pitch && pitch > 100) { // Adjust the threshold to filter out low frequencies
         const note = frequencyToNote(pitch);
-        setCurrentChord(note);
+        const now = Date.now();
+
+        setNoteDurations((prevDurations) => {
+          const newDurations = { ...prevDurations };
+          if (!newDurations[note]) {
+            newDurations[note] = { start: now, duration: 0 };
+          } else {
+            newDurations[note].duration = now - newDurations[note].start;
+          }
+
+          if (newDurations[note].duration >= 2000) { // Note duration is more than 2 seconds
+            setDetectedNotes((prevNotes) => {
+              if (prevNotes.length < 4 && (prevNotes.length === 0 || note !== prevNotes[prevNotes.length - 1])) {
+                setLastDetectedNote(note);
+                return [...prevNotes, note];
+              }
+              return prevNotes;
+            });
+          }
+
+          return newDurations;
+        });
       }
       requestAnimationFrame(detect);
     };
@@ -238,10 +277,24 @@ export default function Home() {
 
         {/* Show Guitar Fretboard only if authenticated */}
         {isAuthenticated ? (
-          <div className={styles.container}>
-            <h1 className="text-7xl font-mono text-green-500">
-              {currentChord}
-            </h1>
+          <div className={`${styles.container} bg-gray-800 p-6 rounded-lg shadow-lg border-4 border-gray-700`}>
+            <h1 className="text-3xl font-bold text-green-400"> {currentChord}</h1>
+            <div className="mt-4 flex justify-center">
+              <button 
+                className={`bg-${isListening ? 'red' : 'blue'}-500 text-white px-4 py-2 rounded hover:bg-${isListening ? 'red' : 'blue'}-700`}
+                onClick={isListening ? stopAudioDetection : startAudioDetection}
+              >
+                {isListening ? 'Detener entrada de audio' : 'Comenzar a escuchar'}
+              </button>
+            </div>
+            <div className="mt-4">
+              <h2 className="text-xl text-white">Notas detectadas:</h2>
+              <ul className="text-white">
+                {detectedNotes.map((note, index) => (
+                  <li key={index}>{note}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         ) : (
           <div className={styles.restrictedAccess}>
