@@ -41,6 +41,8 @@ export default function Home() {
   const halfdiminishChordIntervals = [0, 3, 6, 10]
   const diminishsevenChordIntervals = [0, 3, 6, 9]
   const augmentedmajorChordIntervals = [0, 4, 8, 11]
+  const augmenteddominantChordIntervals = [0, 4, 8, 10]
+  const minormajorChordIntervals = [0, 3, 7, 11]
 
 
   const chordStructures = noteStrings.reduce((acc, note) => {
@@ -54,6 +56,8 @@ export default function Home() {
     acc[note + 'ø'] = generateChordStructure(note, halfdiminishChordIntervals);
     acc[note + 'o7'] = generateChordStructure(note, diminishsevenChordIntervals);
     acc[note + '∆+'] = generateChordStructure(note, augmentedmajorChordIntervals);
+    acc[note + '+7'] = generateChordStructure(note, augmenteddominantChordIntervals);
+    acc[note + 'm∆'] = generateChordStructure(note, minormajorChordIntervals);
 
     
     return acc;

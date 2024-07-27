@@ -14,7 +14,7 @@
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.7.0",
-    "mongoose": "^8.4.1",
+    "mongoose": "^8.5.1",
     "next": "14.2.3",
     "pitchfinder": "^2.3.2",
     "react": "^18",
