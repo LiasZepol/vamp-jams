@@ -19,6 +19,7 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [detectedNotes, setDetectedNotes] = useState([]);
   const [lastDetectedNote, setLastDetectedNote] = useState(null);
+  const [scales, setScales] = useState([]); // Nuevo estado para almacenar escalas
 
   const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -83,6 +84,23 @@ export default function Home() {
   };
 
   const detectedChord = detectChord(detectedNotes);
+
+  const fetchScales = async (chordType) => {
+    try {
+        const response = await fetch(`/api/scales?type=${chordType}`); // Llama al endpoint con el tipo de acorde
+        const data = await response.json();
+        setScales(data.scale); // Almacena las notas de la escala
+    } catch (error) {
+        console.error('Error al obtener escalas:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (detectedChord !== 'No se detectó acorde') {
+        const chordType = detectedChord.endsWith('m') ? 'm7' : 'mayor'; // Determina el tipo de acorde
+        fetchScales(chordType); // Llama a la función con el tipo de acorde
+    }
+  }, [detectedChord]);
 
   useEffect(() => {
     // Check if the user is already authenticated by looking for the token in localStorage
@@ -342,6 +360,14 @@ export default function Home() {
               <h2 className="text-xl text-white">Acorde detectado:</h2>
               <p className="text-white">{detectedChord}</p>
             </div>
+            <div className="mt-4">
+              <h2 className="text-xl text-white">Notas para el tipo de acorde detectado:</h2>
+              <ul className="text-white">
+                {scales.map((note, index) => (
+                  <li key={index}>{note}</li> // Muestra cada nota de la escala
+                ))}
+              </ul>
+            </div>
           </div>
         ) : (
           <div className={styles.restrictedAccess}>
@@ -352,4 +378,3 @@ export default function Home() {
     </div>
   );
 }
-
