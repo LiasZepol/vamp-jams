@@ -11,7 +11,12 @@ export default async function handler(req, res) {
         try {
             const chordType = await ChordType.findOne({ type }).populate('scale'); // Buscar el tipo de acorde y poblar la escala
             if (chordType) {
-                res.status(200).json({ scale: chordType.scale.notes }); // Devolver las notas de la escala
+                const scale = await Scale.findById(chordType.scale); // Buscar la escala asociada
+                if (scale) {
+                    res.status(200).json({ scale: scale.notes }); // Devolver las notas de la escala
+                } else {
+                    res.status(404).json({ error: 'Escala no encontrada' });
+                }
             } else {
                 res.status(404).json({ error: 'Tipo de acorde no encontrado' });
             }

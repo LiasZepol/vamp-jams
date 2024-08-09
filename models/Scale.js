@@ -6,5 +6,5 @@ const scaleSchema = new mongoose.Schema({
 });
 
 const Scale = mongoose.models.Scale || mongoose.model('Scale', scaleSchema);
-export default Scale;
 
+export default Scale;

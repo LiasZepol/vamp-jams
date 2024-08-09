@@ -16,10 +16,12 @@ export default function Home() {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const pitchDetectorRef = useRef(null);
-  const [isListening, setIsListening] = useState(false);
+  const [isListening, setIsListening] = useState(false); // Inicializa en false
   const [detectedNotes, setDetectedNotes] = useState([]);
   const [lastDetectedNote, setLastDetectedNote] = useState(null);
   const [scales, setScales] = useState([]); // Nuevo estado para almacenar escalas
+  const [tuningNote, setTuningNote] = useState('N/A'); // Inicializa con 'N/A'
+  const [tuningFrequency, setTuningFrequency] = useState(0); // Inicializa con 0
 
   const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -80,24 +82,27 @@ export default function Home() {
         }
       }
     }
-    return 'No se detectó acorde';
+    return '---'; // Muestra '---' si no hay acorde detectado
   };
 
   const detectedChord = detectChord(detectedNotes);
+  console.log(detectedChord); // Verifica qué acorde se está detectando
 
   const fetchScales = async (chordType) => {
     try {
-        const response = await fetch(`/api/scales?type=${chordType}`); // Llama al endpoint con el tipo de acorde
+        const response = await fetch(`/api/scales?type=${chordType}`);
         const data = await response.json();
-        setScales(data.scale); // Almacena las notas de la escala
+        console.log(data); // Verifica la estructura de los datos
+        setScales(data.scale || []); // Asegúrate de que 'scale' sea un array
     } catch (error) {
         console.error('Error al obtener escalas:', error);
     }
   };
 
   useEffect(() => {
-    if (detectedChord !== 'No se detectó acorde') {
-        const chordType = detectedChord.endsWith('m') ? 'm7' : 'mayor'; // Determina el tipo de acorde
+    if (detectedChord !== '---') {
+        const chordType = detectedChord.endsWith('m') ? 'menor' : 'mayor'; // Cambiar 'm7' a 'menor'
+        console.log(chordType); // Verifica el tipo de acorde
         fetchScales(chordType); // Llama a la función con el tipo de acorde
     }
   }, [detectedChord]);
@@ -110,15 +115,6 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      startAudioDetection();
-    }
-    return () => {
-      stopAudioDetection();
-    };
-  }, [isAuthenticated]);
-
   const startAudioDetection = async () => {
     audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     analyserRef.current = audioContextRef.current.createAnalyser();
@@ -129,7 +125,7 @@ export default function Home() {
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
       detectPitch();
-      setIsListening(true);
+      setIsListening(true); // Asegúrate de que esté en true
       setDetectedNotes([]); // Reset detected notes when starting detection
       setLastDetectedNote(null); // Reset last detected note
     } catch (err) {
@@ -141,8 +137,48 @@ export default function Home() {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
-    setIsListening(false);
+    setIsListening(false); // Asegúrate de que esté en false
   };
+
+  // Función para generar frecuencias de notas en diferentes octavas
+  const getNoteFrequencies = () => {
+    const baseFrequencies = {
+      'C': 261.63,
+      'C#': 277.18,
+      'D': 293.66,
+      'D#': 311.13,
+      'E': 329.63,
+      'F': 349.23,
+      'F#': 369.99,
+      'G': 392.00,
+      'G#': 415.30,
+      'A': 440.00,
+      'A#': 466.16,
+      'B': 493.88,
+    };
+
+    const frequencies = {};
+    for (let octave = 0; octave <= 8; octave++) { // Cambia el rango según sea necesario
+      for (const [note, frequency] of Object.entries(baseFrequencies)) {
+        frequencies[note + octave] = frequency * Math.pow(2, octave); // Ajusta la frecuencia según la octava
+      }
+    }
+    return frequencies;
+  };
+
+  const noteFrequencies = getNoteFrequencies(); // Genera las frecuencias de notas
+
+  const getLightStatus = (frequency) => {
+    const targetFrequency = noteFrequencies[tuningNote] || 0;
+    if (frequency === 0) return 'bg-gray-500'; // Sin frecuencia detectada
+    if (targetFrequency === 0) return 'bg-gray-500'; // Sin nota seleccionada
+
+    // Compara la frecuencia detectada con la frecuencia de la nota con tolerancia de 1 Hz
+    const tolerance = 6; // Tolerancia en Hz
+    return Math.abs(frequency - targetFrequency) <= tolerance ? 'bg-green-500' : 'bg-gray-500'; // Luz verde si está afinado, gris si no
+  };
+
+  const centerLight = getLightStatus(tuningFrequency);
 
   const detectPitch = () => {
     const bufferLength = analyserRef.current.fftSize;
@@ -165,6 +201,8 @@ export default function Home() {
       const pitch = pitchDetectorRef.current(buffer);
       if (pitch && pitch > 150) { // Adjusted threshold to filter out low frequencies
         const note = frequencyToNote(pitch);
+        setTuningNote(note); // Actualiza la nota de afinación
+        setTuningFrequency(pitch); // Actualiza la frecuencia de afinación
 
         setDetectedNotes((prevNotes) => {
           if (prevNotes.length < 4 && (prevNotes.length === 0 || note !== prevNotes[prevNotes.length - 1])) {
@@ -242,7 +280,7 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-red-900 md:bg-pink-900">
+    <div className="bg-purple-600"> {/* Cambiado a bg-purple-600 */}
       <Head>
         <title>Vamp Jams</title>
         <meta name="description" content="Página de inicio de sesión y registro" />
@@ -252,7 +290,10 @@ export default function Home() {
       <nav className="bg-gradient-to-r from-purple-100 via-purple-500 to-purple-600 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <img src="/images/vampjams.jpeg" alt="Vamp Jams Logo" className="h-10" />
-          <div>
+          <div className="flex items-center">
+            {isAuthenticated && (
+              <h2 className="text-white mr-4">Bienvenido, {username}!</h2> // Mensaje de bienvenida
+            )}
             {!isAuthenticated ? (
               <>
                 <button 
@@ -279,6 +320,18 @@ export default function Home() {
           </div>
         </div>
       </nav>
+
+      {/* Afinador */}
+      <div className="m-0"> {/* Sin margen externo */}
+        <div className="tuner bg-gray-800 py-2 px-1 rounded-lg shadow-lg flex flex-col items-center mx-auto w-auto"> {/* Padding reducido */}
+          <h2 className="text-xl text-white font-bold mb-1">Afinador</h2> {/* Tamaño de texto reducido */}
+          <p className="text-2xl text-green-400 font-semibold mb-1">{tuningNote}</p> {/* Tamaño de texto reducido */}
+          <div className="flex justify-center items-center mb-1">
+            <div className={`light ${centerLight} w-5 h-5 rounded-full transition-all duration-300`} /> {/* Tamaño del foco reducido */}
+          </div>
+          <p className="text-md text-white">{tuningFrequency.toFixed(2)} Hz</p> {/* Tamaño de texto reducido */}
+        </div>
+      </div>
 
       <main className={styles.main}>
         {showLogin && !isAuthenticated && (
@@ -319,12 +372,6 @@ export default function Home() {
           </form>
         )}
 
-        {isAuthenticated && (
-          <div>
-            <h2>Bienvenido, {username}!</h2>
-          </div>
-        )}
-        
         {registrationSuccess && (
           <div>
             <h2>Registro exitoso! Ahora puedes iniciar sesión.</h2>
@@ -333,40 +380,31 @@ export default function Home() {
 
         {/* Show Guitar Fretboard only if authenticated */}
         {isAuthenticated ? (
-          <div className={`${styles.container} bg-gray-800 p-6 rounded-lg shadow-lg border-4 border-gray-700`}>
-            <h1 className="text-3xl font-bold text-green-400"> {currentChord}</h1>
+          <div className={`${styles.container} bg-gray-800 p-4 rounded-lg shadow-lg border-4 border-gray-700`}>
+            <h1 className="text-3xl font-bold text-green-400 text-center mb-4">{currentChord}</h1>
             <div className="mt-4 flex flex-col items-center">
-              {lastDetectedNote && (
-                <h2 className="text-xl text-white mb-4 p-2 bg-gray-700 rounded-lg shadow-md">
-                  {lastDetectedNote}
-                </h2>
-              )}
               <button 
-                className={`bg-${isListening ? 'red' : 'blue'}-500 text-white px-4 py-2 rounded hover:bg-${isListening ? 'red' : 'blue'}-700`}
+                className={`bg-${isListening ? 'red' : 'blue'}-500 text-white px-4 py-2 rounded hover:bg-${isListening ? 'red' : 'blue'}-700 mb-4`}
                 onClick={isListening ? stopAudioDetection : startAudioDetection}
               >
                 {isListening ? 'Detener entrada de audio' : 'Comenzar a escuchar'}
               </button>
             </div>
             <div className="mt-4">
-              <h2 className="text-xl text-white">Notas detectadas:</h2>
-              <ul className="text-white">
-                {detectedNotes.map((note, index) => (
-                  <li key={index}>{note}</li>
+              <h2 className="text-xl text-white text-center">Notas</h2> {/* Añadida clase text-center */}
+              <div className="flex justify-center mt-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="bg-gray-700 text-white p-4 m-2 rounded-lg shadow-md flex-1 min-w-[80px] text-center">
+                    {detectedNotes[index] || '---'} {/* Muestra '---' si no hay nota detectada */}
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
-            <div className="mt-4">
-              <h2 className="text-xl text-white">Acorde detectado:</h2>
-              <p className="text-white">{detectedChord}</p>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-xl text-white">Notas para el tipo de acorde detectado:</h2>
-              <ul className="text-white">
-                {scales.map((note, index) => (
-                  <li key={index}>{note}</li> // Muestra cada nota de la escala
-                ))}
-              </ul>
+            <div className="mt-4 mb-6"> {/* Aumenta el margen superior y añade margen inferior */}
+              <h2 className="text-xl text-white">Acorde</h2>
+              <div className="bg-gray-700 text-white p-4 rounded-lg shadow-md text-center">
+                {detectedChord || '---'} {/* Muestra '---' si no hay acorde detectado */}
+              </div>
             </div>
           </div>
         ) : (
@@ -378,3 +416,4 @@ export default function Home() {
     </div>
   );
 }
+
